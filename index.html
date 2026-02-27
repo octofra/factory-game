@@ -1,0 +1,1090 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Гумёшки - Игра-ходилка на двоих</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Russo+One&family=Roboto:wght@400;700&display=swap');
+        
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #0d2818 0%, #1a4d2e 50%, #2d6a4f 100%);
+            min-height: 100vh;
+        }
+        
+        .title-font {
+            font-family: 'Russo One', sans-serif;
+        }
+        
+        .malachite-bg {
+            background: linear-gradient(145deg, #2d6a4f, #40916c, #1b4332, #52b788);
+            background-size: 400% 400%;
+            animation: malachite-flow 8s ease infinite;
+        }
+        
+        @keyframes malachite-flow {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+        
+        .cell {
+            transition: all 0.3s ease;
+            font-size: 0.65rem;
+        }
+        
+        .cell:hover {
+            transform: scale(1.08);
+            z-index: 10;
+        }
+        
+        .cell.question-cell-1 {
+            background: linear-gradient(145deg, #3b82f6, #1d4ed8, #60a5fa);
+            animation: pulse-blue 2s infinite;
+        }
+        
+        .cell.question-cell-2 {
+            background: linear-gradient(145deg, #eab308, #ca8a04, #facc15);
+            animation: pulse-yellow 2s infinite;
+        }
+        
+        .cell.question-cell-3 {
+            background: linear-gradient(145deg, #ef4444, #b91c1c, #f87171);
+            animation: pulse-red 2s infinite;
+        }
+        
+        .cell.bonus-cell {
+            background: linear-gradient(145deg, #10b981, #059669, #34d399);
+            animation: pulse-green 2s infinite;
+        }
+        
+        .cell.penalty-cell {
+            background: linear-gradient(145deg, #8b5cf6, #7c3aed, #a78bfa);
+            animation: pulse-purple 2s infinite;
+        }
+        
+        @keyframes pulse-blue {
+            0%, 100% { box-shadow: 0 0 3px rgba(59, 130, 246, 0.5); }
+            50% { box-shadow: 0 0 10px rgba(59, 130, 246, 0.9), 0 0 15px rgba(29, 78, 216, 0.5); }
+        }
+        
+        @keyframes pulse-yellow {
+            0%, 100% { box-shadow: 0 0 3px rgba(234, 179, 8, 0.5); }
+            50% { box-shadow: 0 0 10px rgba(234, 179, 8, 0.9), 0 0 15px rgba(202, 138, 4, 0.5); }
+        }
+        
+        @keyframes pulse-red {
+            0%, 100% { box-shadow: 0 0 3px rgba(239, 68, 68, 0.5); }
+            50% { box-shadow: 0 0 10px rgba(239, 68, 68, 0.9), 0 0 15px rgba(185, 28, 28, 0.5); }
+        }
+        
+        @keyframes pulse-green {
+            0%, 100% { box-shadow: 0 0 3px rgba(16, 185, 129, 0.5); }
+            50% { box-shadow: 0 0 10px rgba(16, 185, 129, 0.9), 0 0 15px rgba(5, 150, 105, 0.5); }
+        }
+        
+        @keyframes pulse-purple {
+            0%, 100% { box-shadow: 0 0 3px rgba(139, 92, 246, 0.5); }
+            50% { box-shadow: 0 0 10px rgba(139, 92, 246, 0.9), 0 0 15px rgba(124, 58, 237, 0.5); }
+        }
+        
+        .player {
+            filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.8));
+            font-size: 0.9rem;
+            position: absolute;
+            transition: all 0.3s ease;
+        }
+        
+        .player-1 {
+            animation: bounce1 0.5s ease infinite alternate;
+            top: -2px;
+            left: 2px;
+        }
+        
+        .player-2 {
+            animation: bounce2 0.5s ease infinite alternate;
+            bottom: -2px;
+            right: 2px;
+        }
+        
+        @keyframes bounce1 {
+            from { transform: translateY(0); }
+            to { transform: translateY(-3px); }
+        }
+        
+        @keyframes bounce2 {
+            from { transform: translateY(0); }
+            to { transform: translateY(-3px); }
+        }
+        
+        .dice {
+            transition: transform 0.3s ease;
+        }
+        
+        .dice:hover {
+            transform: scale(1.1);
+        }
+        
+        .dice.rolling {
+            animation: roll 0.5s ease-in-out;
+        }
+        
+        @keyframes roll {
+            0% { transform: rotate(0deg) scale(1); }
+            50% { transform: rotate(180deg) scale(1.2); }
+            100% { transform: rotate(360deg) scale(1); }
+        }
+        
+        .modal {
+            backdrop-filter: blur(5px);
+        }
+        
+        .level-badge {
+            font-size: 0.7rem;
+            padding: 3px 8px;
+            border-radius: 10px;
+        }
+        
+        .gem-icon {
+            animation: sparkle 1.5s ease-in-out infinite;
+        }
+        
+        @keyframes sparkle {
+            0%, 100% { filter: brightness(1); }
+            50% { filter: brightness(1.3) drop-shadow(0 0 5px rgba(82, 183, 136, 0.8)); }
+        }
+        
+        .active-player {
+            animation: glow 1s ease-in-out infinite;
+        }
+        
+        @keyframes glow {
+            0%, 100% { box-shadow: 0 0 5px currentColor; }
+            50% { box-shadow: 0 0 20px currentColor, 0 0 30px currentColor; }
+        }
+
+        /* Tool selection */
+        .tool-card {
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .tool-card:hover {
+            transform: translateY(-4px) scale(1.03);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+        }
+        
+        .tool-card.selected {
+            border-color: #fbbf24 !important;
+            box-shadow: 0 0 20px rgba(251, 191, 36, 0.6), 0 0 40px rgba(251, 191, 36, 0.3);
+            transform: scale(1.05);
+        }
+        
+        .tool-card.selected::after {
+            content: '✔';
+            position: absolute;
+            top: 4px;
+            right: 6px;
+            background: #fbbf24;
+            color: #000;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .tool-card.disabled {
+            opacity: 0.3;
+            pointer-events: none;
+            filter: grayscale(1);
+        }
+        
+        .tool-icon-big {
+            font-size: 2.5rem;
+            animation: float 2s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-6px); }
+        }
+        
+        .tool-card:nth-child(2) .tool-icon-big { animation-delay: 0.2s; }
+        .tool-card:nth-child(3) .tool-icon-big { animation-delay: 0.4s; }
+        .tool-card:nth-child(4) .tool-icon-big { animation-delay: 0.6s; }
+        .tool-card:nth-child(5) .tool-icon-big { animation-delay: 0.8s; }
+        .tool-card:nth-child(6) .tool-icon-big { animation-delay: 1.0s; }
+        .tool-card:nth-child(7) .tool-icon-big { animation-delay: 1.2s; }
+        .tool-card:nth-child(8) .tool-icon-big { animation-delay: 1.4s; }
+
+        .step-indicator {
+            transition: all 0.5s ease;
+        }
+        
+        .step-indicator.active {
+            background: #fbbf24;
+            color: #000;
+            transform: scale(1.2);
+        }
+        
+        .selection-glow {
+            animation: selectionPulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes selectionPulse {
+            0%, 100% { text-shadow: 0 0 10px rgba(251, 191, 36, 0.5); }
+            50% { text-shadow: 0 0 25px rgba(251, 191, 36, 1), 0 0 40px rgba(251, 191, 36, 0.5); }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="p-2 md:p-3">
+    
+    <!-- ============ ЭКРАН ВЫБОРА ПЕРСОНАЖЕЙ ============ -->
+    <div id="selectionScreen" class="max-w-3xl mx-auto">
+        <header class="text-center mb-4 pt-4">
+            <h1 class="title-font text-3xl md:text-5xl text-emerald-400 mb-2">
+                <span class="gem-icon">💎</span> Гумёшки <span class="gem-icon">💎</span>
+            </h1>
+            <p class="text-emerald-200 text-sm md:text-lg mb-3">Путешествие по Медной горе</p>
+            <div class="flex justify-center gap-3 mb-4">
+                <div id="step1Dot" class="step-indicator active w-8 h-8 rounded-full bg-amber-400 text-black flex items-center justify-center font-bold text-sm">1</div>
+                <div class="flex items-center text-gray-500">───</div>
+                <div id="step2Dot" class="step-indicator w-8 h-8 rounded-full bg-gray-600 text-gray-300 flex items-center justify-center font-bold text-sm">2</div>
+            </div>
+        </header>
+
+        <!-- Шаг 1: Выбор игрока 1 -->
+        <div id="selectionStep1" class="fade-in">
+            <div class="text-center mb-4">
+                <h2 class="title-font text-xl md:text-2xl text-amber-400 selection-glow">⛏️ Игрок 1 — выбери орудие труда</h2>
+                <p class="text-emerald-200 text-xs mt-1">Выбери инструмент, с которым отправишься в путешествие по Медной горе</p>
+            </div>
+            <div id="toolsGrid1" class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+                <!-- Generated by JS -->
+            </div>
+            <div class="text-center">
+                <button id="confirmPlayer1" disabled class="bg-gray-600 text-gray-400 font-bold py-2.5 px-8 rounded-xl text-base cursor-not-allowed transition border-2 border-gray-500">
+                    Далее →
+                </button>
+            </div>
+        </div>
+
+        <!-- Шаг 2: Выбор игрока 2 -->
+        <div id="selectionStep2" class="hidden fade-in">
+            <div class="text-center mb-4">
+                <h2 class="title-font text-xl md:text-2xl text-cyan-400 selection-glow">🔨 Игрок 2 — выбери орудие труда</h2>
+                <p class="text-emerald-200 text-xs mt-1">Выбери свой инструмент (уже выбранные недоступны)</p>
+            </div>
+            <div id="toolsGrid2" class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+                <!-- Generated by JS -->
+            </div>
+            <div class="text-center flex justify-center gap-3">
+                <button id="backToPlayer1" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-2.5 px-6 rounded-xl text-sm transition border-2 border-gray-500">
+                    ← Назад
+                </button>
+                <button id="startGameBtn" disabled class="bg-gray-600 text-gray-400 font-bold py-2.5 px-8 rounded-xl text-base cursor-not-allowed transition border-2 border-gray-500">
+                    ⚔️ Начать игру!
+                </button>
+            </div>
+        </div>
+
+        <!-- Preview выбранных -->
+        <div id="selectionPreview" class="mt-4 bg-black/30 rounded-xl p-3">
+            <div class="grid grid-cols-2 gap-3">
+                <div class="text-center">
+                    <p class="text-amber-300 font-bold text-xs mb-1">Игрок 1</p>
+                    <div id="preview1" class="text-3xl">❓</div>
+                    <p id="preview1Name" class="text-gray-400 text-xs mt-1">Не выбрано</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-cyan-300 font-bold text-xs mb-1">Игрок 2</p>
+                    <div id="preview2" class="text-3xl">❓</div>
+                    <p id="preview2Name" class="text-gray-400 text-xs mt-1">Не выбрано</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============ ИГРОВОЙ ЭКРАН ============ -->
+    <div id="gameScreen" class="max-w-6xl mx-auto hidden">
+        <!-- Header -->
+        <header class="text-center mb-3">
+            <h1 class="title-font text-2xl md:text-4xl text-emerald-400 mb-1">
+                <span class="gem-icon">💎</span> Гумёшки <span class="gem-icon">💎</span>
+            </h1>
+            <p class="text-emerald-200 text-sm md:text-base">Путешествие по Медной горе</p>
+        </header>
+
+        <!-- Players Stats -->
+        <div class="grid grid-cols-2 gap-2 mb-3">
+            <!-- Player 1 -->
+            <div id="player1Card" class="bg-gradient-to-r from-amber-600 to-orange-700 p-2 rounded-xl shadow-lg border-2 border-amber-400 active-player">
+                <div class="flex items-center gap-2 mb-1">
+                    <span class="text-xl" id="p1Icon">⛏️</span>
+                    <div>
+                        <span class="text-white font-bold text-sm" id="p1CardName">Игрок 1</span>
+                        <span class="text-amber-200 text-xs block" id="p1CardTool">Кирка</span>
+                    </div>
+                </div>
+                <div class="grid grid-cols-3 gap-1 text-xs">
+                    <div class="bg-black/30 rounded p-1 text-center">
+                        <div class="text-amber-200">Шаг</div>
+                        <div class="text-white font-bold"><span id="player1Position">1</span>/50</div>
+                    </div>
+                    <div class="bg-black/30 rounded p-1 text-center">
+                        <div class="text-green-300">✅</div>
+                        <div class="text-white font-bold" id="player1Correct">0</div>
+                    </div>
+                    <div class="bg-black/30 rounded p-1 text-center">
+                        <div class="text-red-300">❌</div>
+                        <div class="text-white font-bold" id="player1Wrong">0</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Player 2 -->
+            <div id="player2Card" class="bg-gradient-to-r from-cyan-600 to-blue-700 p-2 rounded-xl shadow-lg border-2 border-cyan-400 opacity-60">
+                <div class="flex items-center gap-2 mb-1">
+                    <span class="text-xl" id="p2Icon">🔨</span>
+                    <div>
+                        <span class="text-white font-bold text-sm" id="p2CardName">Игрок 2</span>
+                        <span class="text-cyan-200 text-xs block" id="p2CardTool">Молоток</span>
+                    </div>
+                </div>
+                <div class="grid grid-cols-3 gap-1 text-xs">
+                    <div class="bg-black/30 rounded p-1 text-center">
+                        <div class="text-cyan-200">Шаг</div>
+                        <div class="text-white font-bold"><span id="player2Position">1</span>/50</div>
+                    </div>
+                    <div class="bg-black/30 rounded p-1 text-center">
+                        <div class="text-green-300">✅</div>
+                        <div class="text-white font-bold" id="player2Correct">0</div>
+                    </div>
+                    <div class="bg-black/30 rounded p-1 text-center">
+                        <div class="text-red-300">❌</div>
+                        <div class="text-white font-bold" id="player2Wrong">0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Current Turn Indicator -->
+        <div class="text-center mb-2">
+            <span id="turnIndicator" class="bg-amber-500 text-gray-900 px-4 py-1 rounded-full font-bold text-sm">
+                ⛏️ Ход игрока 1
+            </span>
+        </div>
+
+        <!-- Game Board -->
+        <div class="malachite-bg p-2 rounded-2xl shadow-2xl mb-3 border-2 border-emerald-600">
+            <div id="gameBoard" class="grid grid-cols-10 gap-1">
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="flex flex-col items-center gap-2">
+            <button id="rollDice" class="dice bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white font-bold py-2 px-5 rounded-xl text-base shadow-lg flex items-center gap-2 border-2 border-amber-400">
+                🎲 Бросить кубик
+            </button>
+            <div id="diceResult" class="text-white text-lg font-bold hidden">
+                Выпало: <span id="diceValue" class="text-amber-400">0</span>
+            </div>
+            <button id="restartGame" class="bg-gray-700 hover:bg-gray-600 text-white py-1.5 px-4 rounded-xl border border-gray-600 text-xs">
+                🔄 Начать заново
+            </button>
+        </div>
+
+        <!-- Legend -->
+        <div class="mt-3 bg-black/30 p-2 rounded-xl">
+            <h3 class="text-center text-emerald-300 font-bold mb-2 text-xs">Легенда</h3>
+            <div class="flex flex-wrap justify-center gap-2 text-xs">
+                <div class="flex items-center gap-1 text-gray-300">
+                    <div class="w-4 h-4 bg-gradient-to-r from-blue-500 to-blue-700 rounded border border-blue-400"></div>
+                    <span>Новичок</span>
+                </div>
+                <div class="flex items-center gap-1 text-gray-300">
+                    <div class="w-4 h-4 bg-gradient-to-r from-yellow-500 to-yellow-700 rounded border border-yellow-400"></div>
+                    <span>Знаток</span>
+                </div>
+                <div class="flex items-center gap-1 text-gray-300">
+                    <div class="w-4 h-4 bg-gradient-to-r from-red-500 to-red-700 rounded border border-red-400"></div>
+                    <span>Эксперт</span>
+                </div>
+                <div class="flex items-center gap-1 text-gray-300">
+                    <div class="w-4 h-4 bg-gradient-to-r from-green-500 to-green-700 rounded border border-green-400"></div>
+                    <span>🍀 +3</span>
+                </div>
+                <div class="flex items-center gap-1 text-gray-300">
+                    <div class="w-4 h-4 bg-gradient-to-r from-purple-500 to-purple-700 rounded border border-purple-400"></div>
+                    <span>🕳️ -3</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Question Modal -->
+    <div id="questionModal" class="modal fixed inset-0 bg-black/80 hidden items-center justify-center z-50 p-4">
+        <div class="bg-gradient-to-br from-gray-900 via-emerald-950 to-gray-900 rounded-2xl p-4 max-w-lg w-full shadow-2xl border-2 border-emerald-600 max-h-[90vh] overflow-auto">
+            <div class="text-center mb-2">
+                <span class="text-2xl gem-icon">💎</span>
+                <h2 class="title-font text-lg text-emerald-400 mt-1">Малахитовая шкатулка</h2>
+                <div class="flex justify-center gap-2 mt-1">
+                    <span id="currentPlayerBadge" class="level-badge bg-amber-600 text-white">Игрок 1</span>
+                    <span id="levelBadge" class="level-badge bg-blue-600 text-white">Новичок</span>
+                </div>
+            </div>
+            <p id="questionText" class="text-white text-sm mb-3 text-center leading-relaxed"></p>
+            <div id="answersContainer" class="grid gap-2">
+            </div>
+            <div id="resultMessage" class="hidden mt-3 p-2 rounded-xl text-center text-sm font-bold"></div>
+        </div>
+    </div>
+
+    <!-- Bonus/Penalty Modal -->
+    <div id="bonusModal" class="modal fixed inset-0 bg-black/80 hidden items-center justify-center z-50 p-4">
+        <div id="bonusModalContent" class="bg-gradient-to-br from-green-700 to-emerald-900 rounded-2xl p-5 max-w-sm w-full shadow-2xl text-center border-2 border-green-400">
+            <div id="bonusIcon" class="text-5xl mb-3">🍀</div>
+            <h2 id="bonusTitle" class="title-font text-xl text-white mb-2">Удача!</h2>
+            <p id="bonusText" class="text-green-100 mb-4">Вы нашли самоцвет! +3 клетки вперёд!</p>
+        </div>
+    </div>
+
+    <!-- Win Modal -->
+    <div id="winModal" class="modal fixed inset-0 bg-black/80 hidden items-center justify-center z-50 p-4">
+        <div class="bg-gradient-to-br from-emerald-700 via-green-800 to-emerald-900 rounded-2xl p-5 max-w-md w-full shadow-2xl text-center border-2 border-emerald-400">
+            <div class="text-5xl mb-3">👑</div>
+            <h2 class="title-font text-2xl text-emerald-200 mb-2">Победа!</h2>
+            <p id="winnerText" class="text-emerald-100 text-lg mb-3"></p>
+            <div class="bg-black/30 rounded-xl p-3 mb-4">
+                <div class="grid grid-cols-2 gap-3 text-sm">
+                    <div class="text-left">
+                        <p id="finalP1Label" class="text-amber-300 font-bold mb-1">⛏️ Игрок 1</p>
+                        <p class="text-emerald-200">✅ <span id="final1Correct">0</span> | ❌ <span id="final1Wrong">0</span></p>
+                    </div>
+                    <div class="text-left">
+                        <p id="finalP2Label" class="text-cyan-300 font-bold mb-1">🔨 Игрок 2</p>
+                        <p class="text-emerald-200">✅ <span id="final2Correct">0</span> | ❌ <span id="final2Wrong">0</span></p>
+                    </div>
+                </div>
+            </div>
+            <button id="playAgain" class="bg-amber-500 hover:bg-amber-400 text-gray-900 font-bold py-2 px-6 rounded-xl transition">
+                🔄 Играть снова
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // ============ ОРУДИЯ ТРУДА ============
+        const tools = [
+            { id: 'pickaxe', icon: '⛏️', name: 'Кирка', desc: 'Верная подруга горняка', bonus: 'Прочная и надёжная' },
+            { id: 'hammer', icon: '🔨', name: 'Молоток', desc: 'Для точной работы', bonus: 'Ловкость и сила' },
+            { id: 'axe', icon: '🪓', name: 'Топор', desc: 'Крепит и рубит', bonus: 'Мощь и решимость' },
+            { id: 'pick', icon: '⚒️', name: 'Кайло', desc: 'Дробит любую породу', bonus: 'Несокрушимый дух' },
+            { id: 'wrench', icon: '🔧', name: 'Ключ', desc: 'Мастер на все руки', bonus: 'Смекалка и ум' },
+            { id: 'saw', icon: '🪚', name: 'Пила', desc: 'Пилит сквозь камень', bonus: 'Терпение и труд' },
+            { id: 'chisel', icon: '🗡️', name: 'Зубило', desc: 'Резец камнереза', bonus: 'Точность Данилы' },
+            { id: 'lantern', icon: '🪔', name: 'Лампада', desc: 'Свет во тьме шахты', bonus: 'Путеводный огонь' },
+            { id: 'shovel', icon: '⚙️', name: 'Шестерня', desc: 'Сердце механизма', bonus: 'Заводская сила' },
+            { id: 'compass', icon: '🧭', name: 'Компас', desc: 'Не даст заблудиться', bonus: 'Верный путь' },
+        ];
+
+        let selectedTool1 = null;
+        let selectedTool2 = null;
+
+        // ============ ГЕНЕРАЦИЯ КАРТОЧЕК ИНСТРУМЕНТОВ ============
+        function renderToolCards(gridId, playerNum) {
+            const grid = document.getElementById(gridId);
+            grid.innerHTML = '';
+            
+            tools.forEach(tool => {
+                const card = document.createElement('div');
+                const isDisabled = playerNum === 2 && selectedTool1 && selectedTool1.id === tool.id;
+                
+                card.className = `tool-card bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-3 border-2 border-gray-600 text-center ${isDisabled ? 'disabled' : ''}`;
+                card.dataset.toolId = tool.id;
+                
+                if (playerNum === 1 && selectedTool1 && selectedTool1.id === tool.id) {
+                    card.classList.add('selected');
+                }
+                if (playerNum === 2 && selectedTool2 && selectedTool2.id === tool.id) {
+                    card.classList.add('selected');
+                }
+                
+                card.innerHTML = `
+                    <div class="tool-icon-big mb-1">${tool.icon}</div>
+                    <h3 class="text-white font-bold text-sm">${tool.name}</h3>
+                    <p class="text-gray-400 text-xs mt-1">${tool.desc}</p>
+                    <p class="text-emerald-400 text-xs mt-1 italic">${tool.bonus}</p>
+                `;
+                
+                if (!isDisabled) {
+                    card.addEventListener('click', () => {
+                        if (playerNum === 1) {
+                            selectedTool1 = tool;
+                            document.getElementById('preview1').textContent = tool.icon;
+                            document.getElementById('preview1Name').textContent = tool.name;
+                            document.getElementById('preview1Name').className = 'text-amber-300 text-xs mt-1 font-bold';
+                            const btn = document.getElementById('confirmPlayer1');
+                            btn.disabled = false;
+                            btn.className = 'bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white font-bold py-2.5 px-8 rounded-xl text-base cursor-pointer transition border-2 border-amber-400 shadow-lg';
+                        } else {
+                            selectedTool2 = tool;
+                            document.getElementById('preview2').textContent = tool.icon;
+                            document.getElementById('preview2Name').textContent = tool.name;
+                            document.getElementById('preview2Name').className = 'text-cyan-300 text-xs mt-1 font-bold';
+                            const btn = document.getElementById('startGameBtn');
+                            btn.disabled = false;
+                            btn.className = 'bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-white font-bold py-2.5 px-8 rounded-xl text-base cursor-pointer transition border-2 border-emerald-400 shadow-lg';
+                        }
+                        renderToolCards(gridId, playerNum);
+                    });
+                }
+                
+                grid.appendChild(card);
+            });
+        }
+
+        // Инициализация экрана выбора
+        renderToolCards('toolsGrid1', 1);
+
+        // Кнопка "Далее" после выбора Игрока 1
+        document.getElementById('confirmPlayer1').addEventListener('click', () => {
+            if (!selectedTool1) return;
+            document.getElementById('selectionStep1').classList.add('hidden');
+            document.getElementById('selectionStep2').classList.remove('hidden');
+            document.getElementById('selectionStep2').classList.add('fade-in');
+            document.getElementById('step1Dot').classList.remove('active');
+            document.getElementById('step1Dot').className = 'step-indicator w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center font-bold text-sm';
+            document.getElementById('step1Dot').textContent = '✓';
+            document.getElementById('step2Dot').classList.add('active');
+            renderToolCards('toolsGrid2', 2);
+        });
+
+        // Кнопка "Назад" к выбору Игрока 1
+        document.getElementById('backToPlayer1').addEventListener('click', () => {
+            document.getElementById('selectionStep2').classList.add('hidden');
+            document.getElementById('selectionStep1').classList.remove('hidden');
+            document.getElementById('step1Dot').className = 'step-indicator active w-8 h-8 rounded-full bg-amber-400 text-black flex items-center justify-center font-bold text-sm';
+            document.getElementById('step1Dot').textContent = '1';
+            document.getElementById('step2Dot').classList.remove('active');
+            document.getElementById('step2Dot').className = 'step-indicator w-8 h-8 rounded-full bg-gray-600 text-gray-300 flex items-center justify-center font-bold text-sm';
+            selectedTool2 = null;
+            document.getElementById('preview2').textContent = '❓';
+            document.getElementById('preview2Name').textContent = 'Не выбрано';
+            document.getElementById('preview2Name').className = 'text-gray-400 text-xs mt-1';
+            const btn = document.getElementById('startGameBtn');
+            btn.disabled = true;
+            btn.className = 'bg-gray-600 text-gray-400 font-bold py-2.5 px-8 rounded-xl text-base cursor-not-allowed transition border-2 border-gray-500';
+            renderToolCards('toolsGrid1', 1);
+        });
+
+        // Кнопка "Начать игру"
+        document.getElementById('startGameBtn').addEventListener('click', () => {
+            if (!selectedTool1 || !selectedTool2) return;
+            document.getElementById('selectionScreen').classList.add('hidden');
+            document.getElementById('gameScreen').classList.remove('hidden');
+            document.getElementById('gameScreen').classList.add('fade-in');
+            initGame();
+        });
+
+
+        // ============ ВОПРОСЫ ============
+        const questions = [
+            // УРОВЕНЬ 1: НОВИЧОК
+            { level: 1, levelName: "Новичок", question: "В каком городе находится Гумешевский рудник?", answers: ["Екатеринбург", "Нижний Тагил", "Полевской", "Челябинск"], correct: 2 },
+            { level: 1, levelName: "Новичок", question: "Какой полудрагоценный камень принёс мировую славу Гумёшкам?", answers: ["Изумруд", "Малахит", "Яшма", "Алмаз"], correct: 1 },
+            { level: 1, levelName: "Новичок", question: "Какой металл добывали из руды Гумешевского месторождения?", answers: ["Железо", "Золото", "Медь", "Алюминий"], correct: 2 },
+            { level: 1, levelName: "Новичок", question: "Как называется знаменитый писатель, который описал Гумёшки в своих сказах?", answers: ["Д.Н. Мамин-Сибиряк", "П.П. Бажов", "А.С. Пушкин", "Н.В. Гоголь"], correct: 1 },
+            { level: 1, levelName: "Новичок", question: "Какого цвета малахит?", answers: ["Красный", "Синий", "Зелёный", "Жёлтый"], correct: 2 },
+            { level: 1, levelName: "Новичок", question: "Как называется главный мифический персонаж-хранительница в сказах Бажова?", answers: ["Снежная королева", "Хозяйка Медной горы", "Баба-Яга", "Василиса Премудрая"], correct: 1 },
+            { level: 1, levelName: "Новичок", question: "Как называется знаменитый сборник сказов П.П. Бажова?", answers: ["Золотая шкатулка", "Малахитовая шкатулка", "Изумрудный ларец", "Медный сундук"], correct: 1 },
+            { level: 1, levelName: "Новичок", question: "В каком веке был открыт Гумешевский рудник?", answers: ["XVI век", "XVII век", "XVIII век", "XIX век"], correct: 2 },
+            { level: 1, levelName: "Новичок", question: "На каком Урале находятся Гумёшки?", answers: ["Северный Урал", "Средний Урал", "Южный Урал", "Полярный Урал"], correct: 1 },
+            { level: 1, levelName: "Новичок", question: "Кем по профессии был главный герой сказа «Каменный цветок»?", answers: ["Кузнец", "Камнерез", "Шахтёр", "Плотник"], correct: 1 },
+            { level: 1, levelName: "Новичок", question: "Как звали невесту Данилы-мастера?", answers: ["Настенька", "Катенька", "Машенька", "Алёнушка"], correct: 1 },
+            { level: 1, levelName: "Новичок", question: "Что хотел создать Данила-мастер из малахита?", answers: ["Корону", "Чашу в виде цветка", "Шкатулку", "Колонну"], correct: 1 },
+            
+            // УРОВЕНЬ 2: ЗНАТОК
+            { level: 2, levelName: "Знаток", question: "Какое знаменитое архитектурное сооружение в Санкт-Петербурге украшено колоннами из гумешевского малахита?", answers: ["Казанский собор", "Исаакиевский собор", "Храм Спаса на Крови", "Петропавловский собор"], correct: 1 },
+            { level: 2, levelName: "Знаток", question: "Почему месторождение получило название «Гумёшки»?", answers: ["От фамилии первооткрывателя", "От слова «гумно»", "От звука «гул» из шахт", "Мансийское название меди"], correct: 1 },
+            { level: 2, levelName: "Знаток", question: "Как в сказах Бажова назывались Гумёшки?", answers: ["Золотая гора", "Медная гора", "Каменный цветок", "Змеиная горка"], correct: 1 },
+            { level: 2, levelName: "Знаток", question: "В какой области находится город Полевской?", answers: ["Челябинская", "Свердловская", "Пермский край", "Тюменская"], correct: 1 },
+            { level: 2, levelName: "Знаток", question: "Как называли рабочих, добывавших малахит и другие камни?", answers: ["Каменщики", "Горщики", "Рудокопы", "Старатели"], correct: 1 },
+            { level: 2, levelName: "Знаток", question: "Какой завод был построен рядом с Гумешевским рудником?", answers: ["Невьянский завод", "Полевской медеплавильный", "Нижнетагильский завод", "Сысертский завод"], correct: 1 },
+            { level: 2, levelName: "Знаток", question: "Как звали мастера-камнереза из сказа «Каменный цветок»?", answers: ["Степан", "Данила", "Прокопьич", "Митрофан"], correct: 1 },
+            { level: 2, levelName: "Знаток", question: "Какой формы чаще всего встречается природный малахит?", answers: ["Кубической", "Почковидной (натёчной)", "Призматической", "Игольчатой"], correct: 1 },
+            { level: 2, levelName: "Знаток", question: "Что Хозяйка Медной горы показала Даниле в своих владениях?", answers: ["Золотые россыпи", "Каменный цветок", "Алмазные копи", "Серебряные жилы"], correct: 1 },
+            { level: 2, levelName: "Знаток", question: "Какое животное часто сопровождало Хозяйку Медной горы?", answers: ["Волк", "Медведь", "Ящерица", "Змея"], correct: 2 },
+            { level: 2, levelName: "Знаток", question: "Кто был учителем Данилы-мастера?", answers: ["Степан", "Прокопьич", "Никита", "Василий"], correct: 1 },
+            { level: 2, levelName: "Знаток", question: "Что случилось с Данилой после встречи с Хозяйкой?", answers: ["Стал богатым", "Исчез в горе", "Женился", "Уехал в столицу"], correct: 1 },
+            
+            // УРОВЕНЬ 3: ЭКСПЕРТ
+            { level: 3, levelName: "Эксперт", question: "Кому принадлежал Полевской завод и Гумешевский рудник в XVIII–XIX вв.?", answers: ["Демидовым", "Строгановым", "Турчаниновым", "Яковлевым"], correct: 2 },
+            { level: 3, levelName: "Эксперт", question: "Глыба малахита весом 1,5 тонны из Гумёшек хранится в каком музее?", answers: ["Эрмитаж", "Горный музей СПб", "Оружейная палата", "Уральский геологический"], correct: 1 },
+            { level: 3, levelName: "Эксперт", question: "Каким методом добывают медь на Гумешевском месторождении сейчас?", answers: ["Открытый карьер", "Дражный способ", "Подземное выщелачивание", "Добыча прекращена"], correct: 2 },
+            { level: 3, levelName: "Эксперт", question: "В каком году был основан Полевской медеплавильный завод?", answers: ["1702", "1724", "1745", "1801"], correct: 1 },
+            { level: 3, levelName: "Эксперт", question: "Какой минерал часто встречается вместе с малахитом и имеет синий цвет?", answers: ["Лазурит", "Азурит", "Сапфир", "Аквамарин"], correct: 1 },
+            { level: 3, levelName: "Эксперт", question: "Как называется техника облицовки изделий малахитом с бесшовным узором?", answers: ["Флорентийская мозаика", "Русская мозаика", "Византийская мозаика", "Римская мозаика"], correct: 1 },
+            { level: 3, levelName: "Эксперт", question: "Какой химический элемент придаёт малахиту зелёный цвет?", answers: ["Железо", "Хром", "Медь", "Никель"], correct: 2 },
+            { level: 3, levelName: "Эксперт", question: "Следы какой древней культуры обнаружены на Гумешевском руднике?", answers: ["Скифской", "Сарматской", "Иткульской", "Андроновской"], correct: 2 },
+            { level: 3, levelName: "Эксперт", question: "Какова химическая формула малахита?", answers: ["CuSO₄·5H₂O", "Cu₂CO₃(OH)₂", "CuFeS₂", "Cu₂O"], correct: 1 },
+            { level: 3, levelName: "Эксперт", question: "Кто из российских императоров посещал Гумешевский рудник?", answers: ["Пётр I", "Александр I", "Николай I", "Александр II"], correct: 1 },
+            { level: 3, levelName: "Эксперт", question: "Какой вес имела самая крупная глыба малахита, найденная в России?", answers: ["500 кг", "1,5 тонны", "3 тонны", "250 тонн"], correct: 3 },
+            { level: 3, levelName: "Эксперт", question: "В каком зале Эрмитажа находятся малахитовые изделия?", answers: ["Георгиевский зал", "Малахитовый зал", "Павильонный зал", "Гербовый зал"], correct: 1 },
+        ];
+
+        // ============ ИГРОВОЕ СОСТОЯНИЕ ============
+        const boardSize = 50;
+        let players = [];
+        let currentPlayer = 0;
+        let isRolling = false;
+        let currentQuestion = null;
+        let usedQuestions = [[], []];
+
+        const questionCells = [];
+        const bonusCells = [9, 19, 29, 39];
+        const penaltyCells = [14, 24, 34, 44];
+
+        for (let i = 2; i < boardSize - 1; i += 2) {
+            if (!bonusCells.includes(i) && !penaltyCells.includes(i)) {
+                questionCells.push(i);
+            }
+        }
+
+        function getLevelForCell(cellIndex) {
+            if (cellIndex <= 16) return 1;
+            if (cellIndex <= 33) return 2;
+            return 3;
+        }
+
+        function getLevelColor(level) {
+            switch(level) {
+                case 1: return 'bg-blue-600';
+                case 2: return 'bg-yellow-600';
+                case 3: return 'bg-red-600';
+                default: return 'bg-gray-600';
+            }
+        }
+        
+        function getLevelCellClass(level) {
+            switch(level) {
+                case 1: return 'question-cell-1';
+                case 2: return 'question-cell-2';
+                case 3: return 'question-cell-3';
+                default: return 'question-cell-1';
+            }
+        }
+
+        // ============ ИНИЦИАЛИЗАЦИЯ ИГРЫ ============
+        function initGame() {
+            players = [
+                { position: 0, correct: 0, wrong: 0, icon: selectedTool1.icon, name: 'Игрок 1', toolName: selectedTool1.name },
+                { position: 0, correct: 0, wrong: 0, icon: selectedTool2.icon, name: 'Игрок 2', toolName: selectedTool2.name }
+            ];
+            currentPlayer = 0;
+            usedQuestions = [[], []];
+            isRolling = false;
+            document.getElementById('rollDice').disabled = false;
+            
+            // Обновляем карточки игроков
+            document.getElementById('p1Icon').textContent = players[0].icon;
+            document.getElementById('p1CardName').textContent = players[0].name;
+            document.getElementById('p1CardTool').textContent = players[0].toolName;
+            
+            document.getElementById('p2Icon').textContent = players[1].icon;
+            document.getElementById('p2CardName').textContent = players[1].name;
+            document.getElementById('p2CardTool').textContent = players[1].toolName;
+            
+            updateStats();
+            updateTurnIndicator();
+            renderBoard();
+        }
+
+        function renderBoard() {
+            const board = document.getElementById('gameBoard');
+            board.innerHTML = '';
+
+            for (let i = 0; i < boardSize; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'cell relative h-10 md:h-12 rounded-lg flex items-center justify-center text-white font-bold shadow-md border';
+                
+                if (i === 0) {
+                    cell.classList.add('bg-gradient-to-br', 'from-amber-500', 'to-yellow-600', 'border-amber-400');
+                    cell.innerHTML = '<span class="text-sm">🏠</span>';
+                } else if (i === boardSize - 1) {
+                    cell.classList.add('bg-gradient-to-br', 'from-purple-500', 'to-pink-600', 'border-purple-400');
+                    cell.innerHTML = '<span class="text-sm">👑</span>';
+                } else if (bonusCells.includes(i)) {
+                    cell.classList.add('bonus-cell', 'border-green-400');
+                    cell.innerHTML = `<div class="text-center"><span class="text-sm">🍀</span><div class="text-xs">+3</div></div>`;
+                } else if (penaltyCells.includes(i)) {
+                    cell.classList.add('penalty-cell', 'border-purple-400');
+                    cell.innerHTML = `<div class="text-center"><span class="text-sm">🕳️</span><div class="text-xs">-3</div></div>`;
+                } else if (questionCells.includes(i)) {
+                    const level = getLevelForCell(i);
+                    cell.classList.add(getLevelCellClass(level), 'border-white/30');
+                    cell.innerHTML = `<div class="text-center"><span class="text-xs">💎</span><div class="text-xs opacity-70">${i + 1}</div></div>`;
+                } else {
+                    cell.classList.add('bg-gradient-to-br', 'from-gray-700', 'to-gray-800', 'border-gray-600');
+                    cell.innerHTML = `<span class="text-gray-400 text-xs">${i + 1}</span>`;
+                }
+
+                players.forEach((player, idx) => {
+                    if (i === player.position) {
+                        const playerMarker = document.createElement('div');
+                        playerMarker.className = `player player-${idx + 1}`;
+                        playerMarker.innerHTML = player.icon;
+                        cell.appendChild(playerMarker);
+                    }
+                });
+
+                board.appendChild(cell);
+            }
+        }
+
+        function updateStats() {
+            document.getElementById('player1Position').textContent = players[0].position + 1;
+            document.getElementById('player1Correct').textContent = players[0].correct;
+            document.getElementById('player1Wrong').textContent = players[0].wrong;
+            
+            document.getElementById('player2Position').textContent = players[1].position + 1;
+            document.getElementById('player2Correct').textContent = players[1].correct;
+            document.getElementById('player2Wrong').textContent = players[1].wrong;
+        }
+
+        function updateTurnIndicator() {
+            const indicator = document.getElementById('turnIndicator');
+            const card1 = document.getElementById('player1Card');
+            const card2 = document.getElementById('player2Card');
+            
+            if (currentPlayer === 0) {
+                indicator.className = 'bg-amber-500 text-gray-900 px-4 py-1 rounded-full font-bold text-sm';
+                indicator.innerHTML = `${players[0].icon} Ход игрока 1 (${players[0].toolName})`;
+                card1.classList.add('active-player');
+                card1.classList.remove('opacity-60');
+                card2.classList.remove('active-player');
+                card2.classList.add('opacity-60');
+            } else {
+                indicator.className = 'bg-cyan-500 text-gray-900 px-4 py-1 rounded-full font-bold text-sm';
+                indicator.innerHTML = `${players[1].icon} Ход игрока 2 (${players[1].toolName})`;
+                card2.classList.add('active-player');
+                card2.classList.remove('opacity-60');
+                card1.classList.remove('active-player');
+                card1.classList.add('opacity-60');
+            }
+        }
+
+        function rollDice() {
+            if (isRolling) return;
+            isRolling = true;
+
+            const diceBtn = document.getElementById('rollDice');
+            diceBtn.classList.add('rolling');
+            diceBtn.disabled = true;
+
+            const diceResult = document.getElementById('diceResult');
+            const diceValue = document.getElementById('diceValue');
+
+            let rolls = 0;
+            const rollInterval = setInterval(() => {
+                diceValue.textContent = Math.floor(Math.random() * 6) + 1;
+                rolls++;
+                if (rolls > 10) {
+                    clearInterval(rollInterval);
+                    const finalValue = Math.floor(Math.random() * 6) + 1;
+                    diceValue.textContent = finalValue;
+                    diceResult.classList.remove('hidden');
+                    diceBtn.classList.remove('rolling');
+                    
+                    movePlayer(finalValue);
+                }
+            }, 100);
+        }
+
+        function movePlayer(steps) {
+            const player = players[currentPlayer];
+            const targetPosition = Math.min(player.position + steps, boardSize - 1);
+            
+            const moveInterval = setInterval(() => {
+                if (player.position < targetPosition) {
+                    player.position++;
+                    renderBoard();
+                    updateStats();
+                } else {
+                    clearInterval(moveInterval);
+                    checkCell();
+                }
+            }, 150);
+        }
+
+        function checkCell() {
+            const player = players[currentPlayer];
+            const pos = player.position;
+
+            if (pos >= boardSize - 1) {
+                setTimeout(() => showWinModal(), 500);
+            } else if (questionCells.includes(pos)) {
+                setTimeout(() => showQuestion(), 400);
+            } else if (bonusCells.includes(pos)) {
+                setTimeout(() => showBonusModal(true), 400);
+            } else if (penaltyCells.includes(pos)) {
+                setTimeout(() => showBonusModal(false), 400);
+            } else {
+                endTurn();
+            }
+        }
+
+        function showBonusModal(isBonus) {
+            const modal = document.getElementById('bonusModal');
+            const content = document.getElementById('bonusModalContent');
+            const icon = document.getElementById('bonusIcon');
+            const title = document.getElementById('bonusTitle');
+            const text = document.getElementById('bonusText');
+
+            if (isBonus) {
+                content.className = 'bg-gradient-to-br from-green-700 to-emerald-900 rounded-2xl p-5 max-w-sm w-full shadow-2xl text-center border-2 border-green-400';
+                icon.textContent = '🍀';
+                title.textContent = 'Удача!';
+                text.textContent = `${players[currentPlayer].icon} ${players[currentPlayer].toolName} нашла самоцвет! +3 клетки вперёд!`;
+            } else {
+                content.className = 'bg-gradient-to-br from-purple-700 to-violet-900 rounded-2xl p-5 max-w-sm w-full shadow-2xl text-center border-2 border-purple-400';
+                icon.textContent = '🕳️';
+                title.textContent = 'Ловушка!';
+                text.textContent = `${players[currentPlayer].icon} ${players[currentPlayer].toolName} провалилась в старую шахту! -3 клетки назад!`;
+            }
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+                
+                if (isBonus) {
+                    applyBonus(3);
+                } else {
+                    applyPenalty(3);
+                }
+            }, 1500);
+        }
+
+        function applyBonus(steps) {
+            const player = players[currentPlayer];
+            const targetPosition = Math.min(player.position + steps, boardSize - 1);
+            
+            const moveInterval = setInterval(() => {
+                if (player.position < targetPosition) {
+                    player.position++;
+                    renderBoard();
+                    updateStats();
+                } else {
+                    clearInterval(moveInterval);
+                    if (player.position >= boardSize - 1) {
+                        setTimeout(() => showWinModal(), 500);
+                    } else {
+                        endTurn();
+                    }
+                }
+            }, 150);
+        }
+
+        function applyPenalty(steps) {
+            const player = players[currentPlayer];
+            const targetPosition = Math.max(player.position - steps, 0);
+            
+            const moveInterval = setInterval(() => {
+                if (player.position > targetPosition) {
+                    player.position--;
+                    renderBoard();
+                    updateStats();
+                } else {
+                    clearInterval(moveInterval);
+                    endTurn();
+                }
+            }, 150);
+        }
+
+        function getQuestionForPosition() {
+            const level = getLevelForCell(players[currentPlayer].position);
+            const playerUsed = usedQuestions[currentPlayer];
+            
+            const availableQuestions = questions.filter((q, idx) => 
+                q.level === level && !playerUsed.includes(idx)
+            );
+            
+            if (availableQuestions.length === 0) {
+                usedQuestions[currentPlayer] = playerUsed.filter(idx => questions[idx].level !== level);
+                const levelQuestions = questions.filter(q => q.level === level);
+                return levelQuestions[Math.floor(Math.random() * levelQuestions.length)];
+            }
+            
+            const selected = availableQuestions[Math.floor(Math.random() * availableQuestions.length)];
+            usedQuestions[currentPlayer].push(questions.indexOf(selected));
+            return selected;
+        }
+
+        function showQuestion() {
+            currentQuestion = getQuestionForPosition();
+            const player = players[currentPlayer];
+
+            document.getElementById('currentPlayerBadge').textContent = `${player.icon} ${player.name}`;
+            document.getElementById('currentPlayerBadge').className = `level-badge ${currentPlayer === 0 ? 'bg-amber-600' : 'bg-cyan-600'} text-white`;
+            document.getElementById('levelBadge').textContent = currentQuestion.levelName;
+            document.getElementById('levelBadge').className = `level-badge ${getLevelColor(currentQuestion.level)} text-white`;
+            document.getElementById('questionText').textContent = currentQuestion.question;
+
+            const answersContainer = document.getElementById('answersContainer');
+            answersContainer.innerHTML = '';
+
+            const shuffledAnswers = currentQuestion.answers.map((answer, index) => ({
+                text: answer,
+                isCorrect: index === currentQuestion.correct
+            }));
+            
+            for (let i = shuffledAnswers.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffledAnswers[i], shuffledAnswers[j]] = [shuffledAnswers[j], shuffledAnswers[i]];
+            }
+
+            const letters = ['А', 'Б', 'В', 'Г'];
+            shuffledAnswers.forEach((answer, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'w-full py-2 px-3 bg-gray-800 hover:bg-emerald-800 text-white rounded-lg transition text-left border border-gray-600 hover:border-emerald-500 text-sm';
+                btn.innerHTML = `<span class="text-emerald-400 font-bold">${letters[index]})</span> ${answer.text}`;
+                btn.onclick = () => checkAnswer(answer.isCorrect, btn);
+                answersContainer.appendChild(btn);
+            });
+
+            document.getElementById('resultMessage').classList.add('hidden');
+            document.getElementById('questionModal').classList.remove('hidden');
+            document.getElementById('questionModal').classList.add('flex');
+        }
+
+        function checkAnswer(isCorrect, button) {
+            const buttons = document.querySelectorAll('#answersContainer button');
+            buttons.forEach(btn => btn.disabled = true);
+
+            const resultMessage = document.getElementById('resultMessage');
+            resultMessage.classList.remove('hidden');
+
+            const correctAnswerText = currentQuestion.answers[currentQuestion.correct];
+            const player = players[currentPlayer];
+
+            if (isCorrect) {
+                player.correct++;
+                button.classList.remove('bg-gray-800', 'border-gray-600');
+                button.classList.add('bg-green-600', 'border-green-400');
+                resultMessage.className = 'mt-3 p-2 rounded-xl text-center text-sm font-bold bg-green-700 text-white border border-green-500';
+                resultMessage.innerHTML = '✅ Верно! +2 клетки вперёд';
+                
+                setTimeout(() => {
+                    closeQuestionModal();
+                    applyBonus(2);
+                }, 1500);
+            } else {
+                player.wrong++;
+                button.classList.remove('bg-gray-800', 'border-gray-600');
+                button.classList.add('bg-red-600', 'border-red-400');
+                
+                buttons.forEach(btn => {
+                    if (btn.textContent.includes(correctAnswerText)) {
+                        btn.classList.remove('bg-gray-800', 'border-gray-600');
+                        btn.classList.add('bg-green-600', 'border-green-400');
+                    }
+                });
+                
+                resultMessage.className = 'mt-3 p-2 rounded-xl text-center text-sm font-bold bg-red-700 text-white border border-red-500';
+                resultMessage.innerHTML = `❌ Неверно! Правильно: ${correctAnswerText}<br>-2 клетки назад`;
+                
+                setTimeout(() => {
+                    closeQuestionModal();
+                    applyPenalty(2);
+                }, 2000);
+            }
+
+            updateStats();
+        }
+
+        function closeQuestionModal() {
+            document.getElementById('questionModal').classList.add('hidden');
+            document.getElementById('questionModal').classList.remove('flex');
+        }
+
+        function endTurn() {
+            currentPlayer = currentPlayer === 0 ? 1 : 0;
+            updateTurnIndicator();
+            isRolling = false;
+            document.getElementById('rollDice').disabled = false;
+        }
+
+        function showWinModal() {
+            const winner = players[currentPlayer];
+            document.getElementById('winnerText').textContent = `${winner.icon} ${winner.name} (${winner.toolName}) добрался до палат Хозяйки!`;
+            document.getElementById('finalP1Label').innerHTML = `${players[0].icon} Игрок 1 (${players[0].toolName})`;
+            document.getElementById('finalP2Label').innerHTML = `${players[1].icon} Игрок 2 (${players[1].toolName})`;
+            document.getElementById('final1Correct').textContent = players[0].correct;
+            document.getElementById('final1Wrong').textContent = players[0].wrong;
+            document.getElementById('final2Correct').textContent = players[1].correct;
+            document.getElementById('final2Wrong').textContent = players[1].wrong;
+            
+            document.getElementById('winModal').classList.remove('hidden');
+            document.getElementById('winModal').classList.add('flex');
+        }
+
+        function goToSelection() {
+            document.getElementById('diceResult').classList.add('hidden');
+            document.getElementById('winModal').classList.add('hidden');
+            document.getElementById('winModal').classList.remove('flex');
+            document.getElementById('gameScreen').classList.add('hidden');
+            document.getElementById('selectionScreen').classList.remove('hidden');
+            
+            // Сбросить выбор
+            selectedTool1 = null;
+            selectedTool2 = null;
+            document.getElementById('preview1').textContent = '❓';
+            document.getElementById('preview1Name').textContent = 'Не выбрано';
+            document.getElementById('preview1Name').className = 'text-gray-400 text-xs mt-1';
+            document.getElementById('preview2').textContent = '❓';
+            document.getElementById('preview2Name').textContent = 'Не выбрано';
+            document.getElementById('preview2Name').className = 'text-gray-400 text-xs mt-1';
+            
+            document.getElementById('selectionStep1').classList.remove('hidden');
+            document.getElementById('selectionStep2').classList.add('hidden');
+            document.getElementById('step1Dot').className = 'step-indicator active w-8 h-8 rounded-full bg-amber-400 text-black flex items-center justify-center font-bold text-sm';
+            document.getElementById('step1Dot').textContent = '1';
+            document.getElementById('step2Dot').className = 'step-indicator w-8 h-8 rounded-full bg-gray-600 text-gray-300 flex items-center justify-center font-bold text-sm';
+            
+            const btn1 = document.getElementById('confirmPlayer1');
+            btn1.disabled = true;
+            btn1.className = 'bg-gray-600 text-gray-400 font-bold py-2.5 px-8 rounded-xl text-base cursor-not-allowed transition border-2 border-gray-500';
+            const btn2 = document.getElementById('startGameBtn');
+            btn2.disabled = true;
+            btn2.className = 'bg-gray-600 text-gray-400 font-bold py-2.5 px-8 rounded-xl text-base cursor-not-allowed transition border-2 border-gray-500';
+            
+            renderToolCards('toolsGrid1', 1);
+        }
+
+        // ============ ОБРАБОТЧИКИ СОБЫТИЙ ============
+        document.getElementById('rollDice').addEventListener('click', rollDice);
+        
+        document.getElementById('restartGame').addEventListener('click', goToSelection);
+        document.getElementById('playAgain').addEventListener('click', goToSelection);
+    </script>
+</body>
+</html>
